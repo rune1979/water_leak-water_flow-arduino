@@ -68,7 +68,7 @@ float differance_set;
 float cond; 
 float liter_conv = 0;
 float liter = 0;
-int alert = 0;
+float alert = 0;
 
 //Timers
 unsigned long reg_millis = 0;
@@ -244,6 +244,6 @@ if (millis() > time_t + 5000){
 //    }
   liter = liter_conv * amount;
   time_t = millis();
-  ble.print(liter + ", " + String(alert));
+  ble.print(String(liter) + "," + String(alert));
   }  
 }
