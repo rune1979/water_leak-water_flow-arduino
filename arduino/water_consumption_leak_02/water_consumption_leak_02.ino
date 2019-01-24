@@ -45,7 +45,6 @@ float R02 = 9910;
 float R03 = 10000;
 float term_tolerance = 0.003; // 0.2% depending on product
 float tol;
-float cc1 = 1.009249522e-03, cc2 = 2.378405444e-04, cc3 = 2.019202697e-07, logR1, logR2, logR3, C1, C2, C3;
 
 float Voa;
 float Vob;
@@ -87,17 +86,9 @@ alert = 0;
 liter_conv = 0;
   // Open serial communications and wait for port to open:
   Serial.begin(9600);
-  while (!Serial) {
-    ; // wait for serial port to connect. Needed for native USB port only
-  }
-  Serial.print("Initializing SD card...");
-  
-  // CS PIN in this instance it is 10, but make sure to check your self
-  if (!SD.begin(CS_pin)) {
-    Serial.println("initialization failed!");
-    while (1);
-  }
-  Serial.println("initialization done.");
+//  while (!Serial) {
+//    ; // wait for serial port to connect. Needed for native USB port only
+//  }
   
   read_termister(); //Call read function
   // First run, calibrate the max difference for air to pipe temperature, make sure that 
@@ -114,55 +105,54 @@ liter_conv = 0;
 //  {
 //    error(F("Couldn't find Bluefruit, make sure it's in CoMmanD mode & check wiring?"));
 //  }
-//  Serial.println( F("OK!") );
-//
-//  if ( FACTORYRESET_ENABLE )
-//  {
-//    /* Perform a factory reset to make sure everything is in a known state */
-//    Serial.println(F("Performing a factory reset: "));
-//    if ( ! ble.factoryReset() ) {
-//      error(F("Couldn't factory reset"));
-//    }
-//  }
-//
-//  /* Disable command echo from Bluefruit */
-//  ble.echo(false);
-//
-//  Serial.println("Requesting Bluefruit info:");
-//  /* Print Bluefruit information */
-//  ble.info();
-//
-//  Serial.println(F("Please use Adafruit Bluefruit LE app to connect in UART mode"));
-//  Serial.println(F("Then Enter characters to send to Bluefruit"));
-//  Serial.println();
-//
-//  ble.verbose(false);  // debug info is a little annoying after this point!
-//
-////  /* Wait for connection */
-////  while (! ble.isConnected()) {
-////    delay(500);
-////}
-//
-//  // LED Activity command is only supported from 0.6.6
-//  if ( ble.isVersionAtLeast(MINIMUM_FIRMWARE_VERSION) )
-//  {
-//    // Change Mode LED Activity
-//    Serial.println(F("Change LED activity to " MODE_LED_BEHAVIOUR));
-//    ble.sendCommandCheckOK("AT+HWModeLED=" MODE_LED_BEHAVIOUR);
-//  }
-//
-//  // Set module to DATA mode
-//  Serial.println( F("Switching to DATA mode!") );
-//  ble.setMode(BLUEFRUIT_MODE_DATA);
+  Serial.println( F("OK!") );
+
+  if ( FACTORYRESET_ENABLE )
+  {
+    /* Perform a factory reset to make sure everything is in a known state */
+    Serial.println(F("Performing a factory reset: "));
+    if ( ! ble.factoryReset() ) {
+      error(F("Couldn't factory reset"));
+    }
+  }
+
+  /* Disable command echo from Bluefruit */
+  ble.echo(false);
+
+  Serial.println("Requesting Bluefruit info:");
+  /* Print Bluefruit information */
+  ble.info();
+
+  Serial.println(F("Please use Adafruit Bluefruit LE app to connect in UART mode"));
+  Serial.println(F("Then Enter characters to send to Bluefruit"));
+  Serial.println();
+
+  ble.verbose(false);  // debug info is a little annoying after this point!
+
+  /* Wait for connection */
+  while (! ble.isConnected()) {
+    delay(500);
+}
+
+  // LED Activity command is only supported from 0.6.6
+  if ( ble.isVersionAtLeast(MINIMUM_FIRMWARE_VERSION) )
+  {
+    // Change Mode LED Activity
+    Serial.println(F("Change LED activity to " MODE_LED_BEHAVIOUR));
+    ble.sendCommandCheckOK("AT+HWModeLED=" MODE_LED_BEHAVIOUR);
+  }
+
+  // Set module to DATA mode
+  Serial.println( F("Switching to DATA mode!") );
+  ble.setMode(BLUEFRUIT_MODE_DATA);
 }
 
 void loop() {
   
   if (fdetect == 0 and millis() - 700 > reg_millis) {
     read_termister(); // Get reading
+   
     Serial.println("tol: " + String(tol) + ", cond: " + String(cond) + ", diff: " + String(diff) + ", R1: " + String(R1) + ", R2: " + String(R2) + ", R3: " + String(R3) + ", LR11: " + String(LR11));
-    temp_conv();
-    Serial.println("C1: " + String(C1) + ", C2: " + String(C2) + ", C3: " + String(C3));
     if (abs(LR11 - R1) > tol and millis() > 2000){
         fdetect = 1;       
         
@@ -231,20 +221,19 @@ void loop() {
     leak_millis = millis();
     }
 
-//if (millis() > 10000 and millis() < 15000){
-//  liter_conv = 5.00 / amount; 
-//  Serial.println(String(amount) + "," + String(liter_conv) + ",");
-//  
-//  }
-
 // Write to file and Bluetooth every 5 seconds
 if (millis() > time_t + 5000){
-  Serial.println(String(C1) + "," + String(C2) + "," + String(C3) + "," + String(R1) + "," + String(liter) + "," + String(alert) + "," + String(amount) + "," + liter_conv);
-  myFile = SD.open("test9.txt", FILE_WRITE);
-  if (myFile) {
-      myFile.println(String(R1) + "," + String(R2) + "," + String(R3) + "," + String(amount) + "," + String(millis()) + "," + String(cond) + "," + String(diff) + "," + String(tol) + "," + String(liter) + "," + String(liter_conv) + "," + String(alert) + "," + String(C1) + "," + String(C2) + "," + String(C3));
-      // close the file:
-      myFile.close();
+  
+//  if (!SD.begin(CS_pin)) {
+//    Serial.println("initialization failed!");
+//    while (1);
+//  }
+  Serial.println(String(R1) + "," + String(liter) + "," + String(alert) + "," + String(amount) + "," + liter_conv);
+//  myFile = SD.open("test8.txt", FILE_WRITE);
+//  if (myFile) {
+//      myFile.println(String(R1) + "," + String(R2) + "," + String(R3) + "," + String(amount) + "," + String(millis()) + "," + String(cond) + "," + String(diff) + "," + String(tol) + "," + String(liter) + "," + String(liter_conv) + "," + String(alert));
+//      // close the file:
+//      myFile.close();
 
       // BLE Write
      
@@ -252,7 +241,7 @@ if (millis() > time_t + 5000){
     }
   liter = liter_conv * amount;
   time_t = millis();
-//  ble.print(String(liter) + "," + String(alert));
-//  ble.println(); 
+  ble.print(String(liter) + "," + String(alert));
+  ble.println(); 
   }  
 }
