@@ -18,11 +18,6 @@
 *********************************************************************/
 
 #include <Arduino.h>
-#include <SPI.h>
-//#if not defined (_VARIANT_ARDUINO_DUE_X_) && not defined (_VARIANT_ARDUINO_ZERO_)
-//#include <SoftwareSerial.h>
-//#endif
-
 #include "Adafruit_BLE.h"
 #include "Adafruit_BluefruitLE_SPI.h"
 #include "Adafruit_BluefruitLE_UART.h"
@@ -98,8 +93,7 @@ void error(const __FlashStringHelper*err) {
             automatically on startup)
 */
 /**************************************************************************/
-void ble_setup(void)
-{
+void ble_setup(){
   
   delay(500);
   Serial.println(F("Adafruit Bluefruit Command <-> Data Mode Example"));

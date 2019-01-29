@@ -20,11 +20,12 @@ void read_termister(){
   diff = R1 - R2; // deviation between termistor 1 (in) and two (out)
   diff = diff * cond; // expecting only 90% of the temperature difference to be carried over
   
-  if (millis() > 120000 and millis() < 350000){
+  if (millis() > 120000 and millis() < 240000){
     liter_conv = 5.00 / amount; 
     Serial.println(String(amount) + "," + String(liter_conv) + ",");
   }
 }
+
 void temp_conv(){
   logR1 = log(R1);
   logR2 = log(R2);

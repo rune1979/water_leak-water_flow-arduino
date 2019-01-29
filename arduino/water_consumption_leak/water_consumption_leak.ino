@@ -1,27 +1,13 @@
-#include <Arduino.h>
-#include <SPI.h>
-//#if not defined (_VARIANT_ARDUINO_DUE_X_) && not defined (_VARIANT_ARDUINO_ZERO_)
-//#include <SoftwareSerial.h>
-//#endif
-#include <SD.h>
+#include <SPI.h> 
 
-#include "Adafruit_BLE.h"
-#include "Adafruit_BluefruitLE_SPI.h"
-#include "Adafruit_BluefruitLE_UART.h"
-#include "BluefruitConfig.h"
-#define FACTORYRESET_ENABLE         0
-#define MINIMUM_FIRMWARE_VERSION    "0.6.6"
-#define MODE_LED_BEHAVIOUR          "MODE"
-#define SEND_SECOND_PLOT            0
-SoftwareSerial bluefruitSS = SoftwareSerial(BLUEFRUIT_SWUART_TXD_PIN, BLUEFRUIT_SWUART_RXD_PIN);
+int BLEorSD = 1; // Use either BLE or SD, 1 = BLE, 0 = SD
+/*
+ * The following is taken from Adafruits BLE Library, you need to configure this to your own module.
+ */
 
-Adafruit_BluefruitLE_UART ble(bluefruitSS, BLUEFRUIT_UART_MODE_PIN,
-                      BLUEFRUIT_UART_CTS_PIN, BLUEFRUIT_UART_RTS_PIN);
-// A small helper
-void error(const __FlashStringHelper*err) {
-  Serial.println(err);
-  while (1);
-}
+#include "BLE.h" // Bluetooth
+#include "BluefruitConfig.h" // Bluetooth
+
 /*
  SD card read/write
  * SD card attached to SPI bus as follows:
@@ -31,19 +17,18 @@ void error(const __FlashStringHelper*err) {
  ** CS - pin 10 (for MKRZero SD: SDCARD_SS_PIN)
  */
 //SD CARD
-//#include <SPI.h>
-
+#include <SD.h> //SD CARD LIBRARY
 File myFile;
-int CS_pin = 10; //Your CS pin
+int CS_pin = 3; //Your CS pin
 
-//Termistors
+//Termistors vars
 int ThermistorPin1 = 3;
 int ThermistorPin2 = 4;
 int ThermistorPin3 = 5;
-float R01 = 9910;// Manually calibrate each thermister, due to wiring and divertion in Resistors 
-float R02 = 9910;
-float R03 = 10000;
-float term_tolerance = 0.003; // 0.2% depending on product
+float R01 = 9910;// Manually calibrate each thermister, due to wiring and divertion in resistance
+float R02 = 9863;
+float R03 = 9790;
+float term_tolerance = 0.004; // 0.4% depending on product
 float tol;
 float cc1 = 1.009249522e-03, cc2 = 2.378405444e-04, cc3 = 2.019202697e-07, logR1, logR2, logR3, C1, C2, C3;
 
@@ -80,11 +65,11 @@ unsigned long alert_millis = 0;
 unsigned long time_t = 0;
 
 void setup() {
-
-
 liter = 0;
 alert = 0;
 liter_conv = 0;
+
+if (BLEorSD == 0){
   // Open serial communications and wait for port to open:
   Serial.begin(9600);
   while (!Serial) {
@@ -98,7 +83,10 @@ liter_conv = 0;
     while (1);
   }
   Serial.println("initialization done.");
-  
+}else{
+  Serial.begin(115200);
+ble_setup(); 
+}
   read_termister(); //Call read function
   // First run, calibrate the max difference for air to pipe temperature, make sure that 
   // the water has not been runing for at least three hours before
@@ -108,59 +96,13 @@ liter_conv = 0;
   R3 = RA3;
   LR11 = R1;
 
-//  // BLE setup
-//  delay(500);
-//  if ( !ble.begin(VERBOSE_MODE) )
-//  {
-//    error(F("Couldn't find Bluefruit, make sure it's in CoMmanD mode & check wiring?"));
-//  }
-//  Serial.println( F("OK!") );
-//
-//  if ( FACTORYRESET_ENABLE )
-//  {
-//    /* Perform a factory reset to make sure everything is in a known state */
-//    Serial.println(F("Performing a factory reset: "));
-//    if ( ! ble.factoryReset() ) {
-//      error(F("Couldn't factory reset"));
-//    }
-//  }
-//
-//  /* Disable command echo from Bluefruit */
-//  ble.echo(false);
-//
-//  Serial.println("Requesting Bluefruit info:");
-//  /* Print Bluefruit information */
-//  ble.info();
-//
-//  Serial.println(F("Please use Adafruit Bluefruit LE app to connect in UART mode"));
-//  Serial.println(F("Then Enter characters to send to Bluefruit"));
-//  Serial.println();
-//
-//  ble.verbose(false);  // debug info is a little annoying after this point!
-//
-////  /* Wait for connection */
-////  while (! ble.isConnected()) {
-////    delay(500);
-////}
-//
-//  // LED Activity command is only supported from 0.6.6
-//  if ( ble.isVersionAtLeast(MINIMUM_FIRMWARE_VERSION) )
-//  {
-//    // Change Mode LED Activity
-//    Serial.println(F("Change LED activity to " MODE_LED_BEHAVIOUR));
-//    ble.sendCommandCheckOK("AT+HWModeLED=" MODE_LED_BEHAVIOUR);
-//  }
-//
-//  // Set module to DATA mode
-//  Serial.println( F("Switching to DATA mode!") );
-//  ble.setMode(BLUEFRUIT_MODE_DATA);
 }
 
 void loop() {
   
   if (fdetect == 0 and millis() - 700 > reg_millis) {
     read_termister(); // Get reading
-    Serial.println("tol: " + String(tol) + ", cond: " + String(cond) + ", diff: " + String(diff) + ", R1: " + String(R1) + ", R2: " + String(R2) + ", R3: " + String(R3) + ", LR11: " + String(LR11));
+    Serial.println("tol: " + String(tol) + ", diff: " + String(diff) + ", R1: " + String(R1) + ", R2: " + String(R2) + ", R3: " + String(R3) + ", LR11: " + String(LR11));
     temp_conv();
     Serial.println("C1: " + String(C1) + ", C2: " + String(C2) + ", C3: " + String(C3));
     if (abs(LR11 - R1) > tol and millis() > 2000){
@@ -218,7 +160,7 @@ void loop() {
     log_millis = millis();
   }
   
-  if (millis() > leak_millis + 14000){
+  if (millis() > leak_millis + 10000){
     read_termister(); // Get reading
     LR11 = R1;
     if (abs(R1 - R3) < differance_set){
@@ -226,33 +168,27 @@ void loop() {
       }
     if (alert_millis + 300000 < millis()){
       Serial.println("Leak detected");
-      alert = 1;
+      alert = 15;
       }
     leak_millis = millis();
     }
 
-//if (millis() > 10000 and millis() < 15000){
-//  liter_conv = 5.00 / amount; 
-//  Serial.println(String(amount) + "," + String(liter_conv) + ",");
-//  
-//  }
-
 // Write to file and Bluetooth every 5 seconds
 if (millis() > time_t + 5000){
   Serial.println(String(C1) + "," + String(C2) + "," + String(C3) + "," + String(R1) + "," + String(liter) + "," + String(alert) + "," + String(amount) + "," + liter_conv);
-  myFile = SD.open("test9.txt", FILE_WRITE);
+  if (BLEorSD == 0){
+  myFile = SD.open("test14.txt", FILE_WRITE);
   if (myFile) {
-      myFile.println(String(R1) + "," + String(R2) + "," + String(R3) + "," + String(amount) + "," + String(millis()) + "," + String(cond) + "," + String(diff) + "," + String(tol) + "," + String(liter) + "," + String(liter_conv) + "," + String(alert) + "," + String(C1) + "," + String(C2) + "," + String(C3));
+      myFile.println(String(R1) + "," + String(R2) + "," + String(R3) + "," + String(millis()) + "," + String(liter) + "," + String(alert) + "," + String(C1) + "," + String(C2) + "," + String(C3));
       // close the file:
       myFile.close();
-
       // BLE Write
-     
-      
+    }}else{
+  ble.print(String(C2) + "," + String(liter) + "," + String(alert));
+  //ble.println();
     }
   liter = liter_conv * amount;
   time_t = millis();
-//  ble.print(String(liter) + "," + String(alert));
-//  ble.println(); 
+ 
   }  
 }
