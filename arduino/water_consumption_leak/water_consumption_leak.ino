@@ -44,7 +44,7 @@ float Old_R1;
 //General Vars
 int fdetect = 0;
 int ldetect = 0;
-float amount = 0;
+int amount = 0;
 int coldhot;
 float lastrecord;
 float diff;
@@ -52,7 +52,7 @@ float stop_register;
 float differance_set;
 // Conductivity ratio water to air is about 1/24 or aproxemately 4 percent, but other material would also have an effect so we will set it to 10 %
 float cond; 
-float liter;
+float liter = 0.00;
 float alert;
 float liter_conv;
 
@@ -65,9 +65,7 @@ unsigned long alert_millis = 0;
 unsigned long time_t = 0;
 
 void setup() {
-liter = 0;
-alert = 0;
-liter_conv = 0;
+
 
 if (BLEorSD == 0){
   // Open serial communications and wait for port to open:
@@ -161,17 +159,19 @@ void loop() {
   }
   
   if (millis() > leak_millis + 10000){
-    read_termister(); // Get reading
-    LR11 = R1;
-    if (abs(R1 - R3) < differance_set){
+        
+    if (abs(R1 - R3) < differance_set){ // Check if temperature have reached minimium difference, and reset allert_millis
       alert_millis = millis();
       }
-    if (alert_millis + 300000 < millis()){
+      
+    if (alert_millis + 300000 < millis()){ // Five minutes, this should be set to 10 hours or something in that range
       Serial.println("Leak detected");
       alert = 15;
       }
+    
     leak_millis = millis();
     }
+
 
 // Write to file and Bluetooth every 5 seconds
 if (millis() > time_t + 5000){
@@ -184,8 +184,9 @@ if (millis() > time_t + 5000){
       myFile.close();
       // BLE Write
     }}else{
-  ble.print(String(C2) + "," + String(liter) + "," + String(alert));
-  //ble.println();
+      String test = String(liter);
+      ble.print(" " + String(C2) + "," + String(alert));
+      ble.println();
     }
   liter = liter_conv * amount;
   time_t = millis();

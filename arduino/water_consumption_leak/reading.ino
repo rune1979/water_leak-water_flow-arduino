@@ -20,9 +20,13 @@ void read_termister(){
   diff = R1 - R2; // deviation between termistor 1 (in) and two (out)
   diff = diff * cond; // expecting only 90% of the temperature difference to be carried over
   
-  if (millis() > 120000 and millis() < 240000){
-    liter_conv = 5.00 / amount; 
+  if (millis() > 20000 and millis() < 240000){ // Four minuttes to callibrate what 3 liters are
+    liter_conv = 3.00 / amount; 
     Serial.println(String(amount) + "," + String(liter_conv) + ",");
+    }
+    
+  if (millis() > leak_millis + 10000){
+    LR11 = R1; //Set LR11 every 10th second
   }
 }
 
